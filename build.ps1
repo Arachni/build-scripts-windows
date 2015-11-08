@@ -4,17 +4,17 @@
     [bool]   $package   = $false
 )
 
-if( -not ( test-path "$env:ProgramFiles\7-Zip\7z.exe" ) ) { 
+if( -not ( test-path "$env:ProgramFiles\7-Zip\7z.exe" ) ) {
     throw "Missing $env:ProgramFiles\7-Zip\7z.exe"
 }
 $env:Path += ";$env:ProgramFiles\7-Zip\"
-set-alias sz "7z.exe"  
+set-alias sz "7z.exe"
 
 function CreateDirectories( $dirs )
 {
     foreach( $directory in $dirs.GetEnumerator() ) {
         $path = $directory.value
-   
+
         if( "$($path.GetType())" -eq "Hashtable" ) {
             CreateDirectories( $path )
         } else {
@@ -26,7 +26,7 @@ function CreateDirectories( $dirs )
             }
         }
     }
-    
+
 }
 
 function HandleFailure( $process )
@@ -65,7 +65,7 @@ function DownloadArchive( $url )
 {
     $destination = "$($directories.build.archives)\$(FilenameFromUrl( $url ))"
 
-    if (test-path "$destination" ) { 
+    if (test-path "$destination" ) {
         return $destination
     }
 
@@ -257,9 +257,9 @@ function InstallBinWrappers() {
     Set-Content "$($directories.system)\setenv.bat" $(SetEnvBatch)
 
     $web_executables = (
-        "create_user", 
-        "change_password", 
-        "import", 
+        "create_user",
+        "change_password",
+        "import",
         "scan_import"
     )
 
@@ -298,14 +298,14 @@ function InstallBinWrappers() {
 
 $cwd = Convert-Path .
 
-if( $build_dir -match '\s' ) { 
-    throw "Path to build directory should not contain spaces: '$build_dir'" 
+if( $build_dir -match '\s' ) {
+    throw "Path to build directory should not contain spaces: '$build_dir'"
 }
 
 $clean_build_dir = "$build_dir-clean"
 $from_clean_dir  = $false
 
-if( test-path $clean_build_dir ) { 
+if( test-path $clean_build_dir ) {
     Write-Output "Found clean build ($clean_build_dir), using it as base."
     Write-Output ""
 
@@ -421,7 +421,7 @@ if( $package ) {
     $version = Get-Content( "$build_dir\VERSION.txt" ).trim()
 
     $package_name = "arachni-$version-windows-x86_x64"
-    
+
     Delete $package_name
     Delete "$package_name.exe"
 
