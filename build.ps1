@@ -32,12 +32,8 @@ function CreateDirectories( $dirs )
 function HandleFailure( $process )
 {
     if( $lastexitcode -ne 0 ) {
-        Write-Output "Process exited with code $lastexitcode, check " +
-            "$($directories.build.logs)\$process.txt for details."
-
-        Write-Output "When you resolve the issue you can run the script again" +
-            " to continue where the process left off."
-
+        Write-Output "Process exited with code $lastexitcode, check $($directories.build.logs)\$process.txt for details."
+        Write-Output "When you resolve the issue you can run the script again to continue where the process left off."
         Set-Location $cwd
         exit $lastexitcode
     }
@@ -57,13 +53,16 @@ function FilenameFromUrl( $url )
 
 function ArchiveToDirectory( $archive )
 {
-    return "$($directories.build.extracted)\" +
-        "$([io.path]::GetFileNameWithoutExtension( $archive ))"
+    return "$($directories.build.extracted)\$([io.path]::GetFileNameWithoutExtension( $archive ))"
 }
 
-function DownloadArchive( $url )
+function DownloadArchive( $url, $force )
 {
     $destination = "$($directories.build.archives)\$(FilenameFromUrl( $url ))"
+
+    if( $force ) {
+        Delete $destination
+    }
 
     if (test-path "$destination" ) {
         return $destination
@@ -149,7 +148,7 @@ function FetchDependency( $name, $data ){
     Write-Output "Fetching $name"
 
     Write-Output "  * Downloading: $($data.url)"
-    $data.archive = DownloadArchive( $data.url )
+    $data.archive = DownloadArchive $data.url $data.force
     Write-Output "  * --> $($data.archive)"
 
     Write-Output "  * Extracting: $($data.archive)"
@@ -339,26 +338,31 @@ $dependencies = @{
         url       = "http://dl.bintray.com/oneclick/rubyinstaller/ruby-2.2.3-x64-mingw32.7z"
         archive   = $null
         directory = $null
+        force     = $false
     }
     devkit = @{
         url       = "http://dl.bintray.com/oneclick/rubyinstaller/DevKit-mingw64-64-4.7.2-20130224-1432-sfx.exe"
         archive   = $null
         directory = $null
+        force     = $false
     }
     phantomjs = @{
         url       = "https://phantomjs.googlecode.com/files/phantomjs-1.9.2-windows.zip"
         archive   = $null
         directory = $null
+        force     = $false
     }
     libcurl = @{
         url       = "http://curl.haxx.se/gknw.net/7.40.0/dist-w64/curl-7.40.0-rtmp-ssh2-ssl-sspi-zlib-winidn-static-bin-w64.7z"
         archive   = $null
         directory = $null
+        force     = $false
     }
     arachni = @{
         url       = "https://github.com/Arachni/arachni-ui-web/archive/$branch.zip"
         archive   = $null
         directory = "arachni-ui-web-$branch"
+        force     = $true
     }
 
 }
@@ -395,8 +399,8 @@ if( -not $from_clean_dir ) {
     Copy "$($directories.root)\*" "$clean_build_dir\" -Recurse
     Write-Output ""
 } else {
-    FetchDependency "devkit" $dependencies.Get_Item( "devkit" )
-    FetchDependency "arachni" $dependencies.Get_Item( "arachni" )
+    FetchDependency "devkit" $dependencies.devkit
+    FetchDependency "arachni" $dependencies.arachni
 }
 
 Write-Output "Installing Arachni"
@@ -420,7 +424,7 @@ if( $package ) {
 
     $version = Get-Content( "$build_dir\VERSION.txt" ).trim()
 
-    $package_name = "arachni-$version-windows-x86_x64"
+    $package_name = "arachni-$version-windows-x86_64"
 
     Delete $package_name
     Delete "$package_name.exe"
