@@ -111,8 +111,8 @@ set ARACHNI_WEBUI_LOGDIR=%ENV_ROOT%\logs\webui
 :: PhantomJS cache needs to be per package to prevent conflicts.
 set USERPROFILE=%ENV_ROOT%user-profile
 
-For /F "Delims=" %%I In ('echo %PATH% ^| find /C /I "%ENV_RUBY_BIN%"') Do set pathExists=%%I 2>Nul
-If %pathExists%==0 (set PATH=%ENV_RUBY_BIN%;%PATH%)
+For /F "Delims=" %%I In ('echo "%PATH%" ^| find /C /I "%ENV_RUBY_BIN%"') Do set pathExists=%%I 2>Nul
+If %pathExists%==0 set PATH=%ENV_RUBY_BIN%;%PATH%
 "@
 }
 
@@ -417,24 +417,24 @@ Write-Output "done."
 
 Copy "$PSScriptRoot\templates\*" "$($directories.root)\"
 
-Set-Location $cwd
-
 if( $package ) {
     Set-Location $cwd
 
-    $version = Get-Content( "$build_dir\VERSION.txt" ).trim()
-
+    $version      = Get-Content( "$build_dir\VERSION.txt" ).trim()
     $package_name = "arachni-$version-windows-x86_64"
+    $package_dir  = "$build_dir\..\$package_name"
 
-    Delete $package_name
-    Delete "$package_name.exe"
+    Delete $package_dir
+    Delete "$package_dir.exe"
 
     Rename-Item $build_dir $package_name
 
     Write-Host -NoNewline "Packaging..."
 
-    sz a "$package_name.exe" -mmt -mx5 -sfx "$package_name" | Out-Null
+    sz a "$package_dir.exe" -mmt -mx5 -sfx "$package_dir" | Out-Null
     HandleFailure( "package" )
 
     Write-Output "done: $package_name.exe"
 }
+
+Set-Location $cwd
