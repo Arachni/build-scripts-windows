@@ -109,7 +109,7 @@ set ARACHNI_FRAMEWORK_LOGDIR=%ENV_ROOT%\logs\framework
 set ARACHNI_WEBUI_LOGDIR=%ENV_ROOT%\logs\webui
 
 :: PhantomJS cache needs to be per package to prevent conflicts.
-set USERPROFILE=%ENV_ROOT%user-profile
+set USERPROFILE=%ENV_ROOT%home
 
 For /F "Delims=" %%I In ('echo "%PATH%" ^| find /C /I "%ENV_RUBY_BIN%"') Do set pathExists=%%I 2>Nul
 If %pathExists%==0 set PATH=%ENV_RUBY_BIN%;%PATH%
@@ -324,7 +324,7 @@ $directories = @{
     logs      = "$build_dir\system\logs"
     flogs     = "$build_dir\system\logs\framework"
     wlogs     = "$build_dir\system\logs\webui"
-    appdata   = "$build_dir\system\user-profile\AppData\Local"
+    appdata   = "$build_dir\system\home\AppData\Local"
 
     build     = @{
         logs      = "$build_dir\build\logs\"
