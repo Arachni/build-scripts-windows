@@ -293,6 +293,10 @@ function InstallBinWrappers() {
 
 }
 
+function ConvertToCrLf( $path ) {
+  (Get-Content $path) | Set-Content $path
+}
+
 #$build_dir = "C:\arachni"
 
 $cwd = Convert-Path .
@@ -416,6 +420,9 @@ Delete "$($directories.root)\build"
 Write-Output "done."
 
 Copy "$PSScriptRoot\templates\*" "$($directories.root)\"
+ConvertToCrLf( "$($directories.root)\LICENSE.txt" )
+ConvertToCrLf( "$($directories.root)\README.txt" )
+ConvertToCrLf( "$($directories.root)\TROUBLESHOOTING.txt" )
 
 if( $package ) {
     Set-Location $cwd
