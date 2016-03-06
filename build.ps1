@@ -204,23 +204,6 @@ function InstallPhantomJS(){
     Copy "$($dependencies.phantomjs.directory)\phantomjs.exe" "$($directories.ruby)\bin\"
 }
 
-function FixBcrypt(){
-    Write-Host -NoNewline "  * Fixing bcrypt..."
-
-    Set-Location "$($directories.ruby)\lib\ruby\gems\2.2.0\gems\bcrypt-3.1.10-x64-mingw32\ext\mri"
-
-    & "$($directories.ruby)\bin\ruby" "extconf.rb" *>> "$($directories.build.logs)\bcrypt.txt"
-    HandleFailure( "devkit" )
-
-    & "$($dependencies.devkit.directory)\bin\make.exe" *>> "$($directories.build.logs)\bcrypt.txt"
-    HandleFailure( "devkit" )
-
-    & "$($dependencies.devkit.directory)\bin\make.exe" "install" *>> "$($directories.build.logs)\bcrypt.txt"
-    HandleFailure( "devkit" )
-
-    Write-Output "done."
-}
-
 function InstallArachni(){
     Delete "$($directories.arachni)\*"
     Copy "$($dependencies.arachni.directory)\*" "$($directories.arachni)\" -Recurse
@@ -230,9 +213,6 @@ function InstallArachni(){
     & "$($directories.ruby)\bin\bundle.bat" "install" *>> "$($directories.build.logs)\arachni.txt"
     HandleFailure( "arachni" )
     Write-Output "done."
-
-    . "$($dependencies.devkit.directory)\devkitvars.ps1" *>> "$($directories.build.logs)\arachni.txt"
-    FixBcrypt
 
     Set-Location $directories.arachni
 
