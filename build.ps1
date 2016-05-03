@@ -319,7 +319,7 @@ $directories = @{
 
 $dependencies = @{
     ruby   = @{
-        url       = "http://dl.bintray.com/oneclick/rubyinstaller/ruby-2.2.3-x64-mingw32.7z"
+        url       = "http://dl.bintray.com/oneclick/rubyinstaller/ruby-2.3.0-x64-mingw32.7z"
         archive   = $null
         directory = $null
         force     = $false
@@ -365,9 +365,6 @@ if( -not $from_clean_dir ) {
     Write-Output "  * Ruby"
     InstallRuby
 
-    Write-Output "  * Bundler"
-    InstallBundler
-
     Write-Output "  * DevKit"
     InstallDevKit
 
@@ -386,6 +383,10 @@ if( -not $from_clean_dir ) {
     FetchDependency "devkit" $dependencies.devkit
     FetchDependency "arachni" $dependencies.arachni
 }
+
+Write-Output "Installing Bundler"
+InstallBundler
+Write-Output ""
 
 Write-Output "Installing Arachni"
 InstallArachni
