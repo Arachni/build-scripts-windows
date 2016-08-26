@@ -201,7 +201,7 @@ function Installlibcurl(){
 
 function InstallPhantomJS(){
     Delete "$($directories.ruby)\bin\phantomjs.exe"
-    Copy "$($dependencies.phantomjs.directory)\phantomjs.exe" "$($directories.ruby)\bin\"
+    Copy "$($dependencies.phantomjs.directory)\bin\phantomjs.exe" "$($directories.ruby)\bin\"
 }
 
 function InstallArachni(){
@@ -318,8 +318,10 @@ $directories = @{
 }
 
 $dependencies = @{
+    # Stick with this version because SQLite3 doesn't have a native gem for 2.3 yet:
+    #   https://github.com/sparklemotion/sqlite3-ruby/issues/185
     ruby   = @{
-        url       = "http://dl.bintray.com/oneclick/rubyinstaller/ruby-2.3.0-x64-mingw32.7z"
+        url       = "http://dl.bintray.com/oneclick/rubyinstaller/ruby-2.2.1-x64-mingw32.7z"
         archive   = $null
         directory = $null
         force     = $false
@@ -331,7 +333,7 @@ $dependencies = @{
         force     = $false
     }
     phantomjs = @{
-        url       = "https://phantomjs.googlecode.com/files/phantomjs-1.9.2-windows.zip"
+        url       = "https://bitbucket.org/ariya/phantomjs/downloads/phantomjs-2.1.1-windows.zip"
         archive   = $null
         directory = $null
         force     = $false
