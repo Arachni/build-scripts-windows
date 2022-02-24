@@ -220,6 +220,9 @@ function InstallArachni(){
     # Required for shared-mime-info gem.
     $env:FREEDESKTOP_MIME_TYPES_PATH = "$($directories.appdata)\freedesktop.org.xml.in"
 
+    # Require for asset precompilation.
+    $env:Path = "$($directories.build.extracted)\node-v16.14.0-win-x64\;$($env:Path)"
+
     # Required for SQlite3.
     & "$($directories.ruby)\msys64\usr\bin\sh.exe" "-l" "-c" "pacman.exe --noconfirm -S mingw-w64-x86_64-dlfcn" *>> "$($directories.build.logs)\arachni.txt"
 
@@ -320,8 +323,8 @@ $directories = @{
 
     bin       = "$build_dir\bin"
     system    = "$build_dir\system"
-    arachni   = "$build_dir\system\arachni-ui-web",
-    arachni   = "$build_dir\system\arachni-ui-web\tmp\pids"
+    arachni   = "$build_dir\system\arachni-ui-web"
+    arachni_puma_pids   = "$build_dir\system\arachni-ui-web\tmp\pids"
     ruby      = "$build_dir\system\ruby"
     logs      = "$build_dir\system\logs"
     flogs     = "$build_dir\system\logs\framework"
@@ -338,6 +341,12 @@ $directories = @{
 $dependencies = @{
     openssl = @{
         url       = "https://slproweb.com/download/Win64OpenSSL_Light-1_1_1m.exe"
+        archive   = $null
+        directory = $null
+        force     = $false
+    }
+    nodejs = @{
+        url       = "https://nodejs.org/dist/v16.14.0/node-v16.14.0-win-x64.zip"
         archive   = $null
         directory = $null
         force     = $false
