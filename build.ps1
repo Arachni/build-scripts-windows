@@ -68,6 +68,7 @@ function DownloadArchive( $url, $force )
         return $destination
     }
 
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
     (New-Object System.Net.WebClient).DownloadFile( $url, $destination )
 
     return $destination
@@ -83,7 +84,14 @@ function Extract( $archive )
 
     # 7z Self-extracting archive
     if( $extention -eq ".exe" ) {
-        & "$archive" -o"$destination" -y | Out-Null
+        # & "$archive" /dir="$destination" -y /verysilent | Out-Null
+    } elseif( $extention -eq ".xz" ) {
+        sz x $archive -o"$($directories.build.archives)" -y *>> "$($directories.build.logs)\$name.txt"
+
+        $archive = $archive.Substring( 0, $archive.length - 3 )
+        $name    = FilenameFromUrl( $archive )
+
+        sz x $archive -o"$($directories.build.extracted)\$($name)" -y *>> "$($directories.build.logs)\$name.txt"
     } else {
         sz x $archive -o"$($directories.build.extracted)" -y *>> "$($directories.build.logs)\$name.txt"
     }
@@ -120,7 +128,7 @@ function EnvWrapper( $executable ) {
     return @"
 @echo OFF
 setlocal
-call "%~dp0..\system\setenv.bat"
+call "%~dp0..\system\setenv.cmd"
 
 $executable %*
 
@@ -172,44 +180,53 @@ function FetchDependencies(){
 
 function InstallRuby() {
     Delete "$($directories.ruby)\*"
-    Copy "$($dependencies.ruby.directory)\*" "$($directories.ruby)\" -Recurse
+
+    $name  = FilenameFromUrl( $dependencies.ruby.url )
+    & "$($directories.build.archives)\$($name)" /dir="$($directories.ruby)" /verysilent | Out-Null
+}
+
+function InstallOpenSSL() {
+    $name  = FilenameFromUrl( $dependencies.openssl.url )
+    & "$($directories.build.archives)\$($name)" /dir="$($directories.appdata)\openssl" /verysilent | Out-Null
 }
 
 function InstallBundler(){
-    & "$($directories.ruby)\bin\gem.bat" "install" "bundler" *>> "$($directories.build.logs)\bundler.txt"
+    & "$($directories.ruby)\bin\gem.cmd" "install" "bundler" *>> "$($directories.build.logs)\bundler.txt"
     HandleFailure( "bundler" )
 }
 
-function InstallDevKit() {
-    $devkit_config_yml = "---
-- $($directories.ruby -replace "\\", "/" )"
-
-    # We need to write config.yml so make sure we're somewhere with enough permissions.
-    Set-Location $dependencies.devkit.directory
-    Set-Content "config.yml" $devkit_config_yml
-
-    & "$($directories.ruby)\bin\ruby" "$($dependencies.devkit.directory)\dk.rb" "install" *>> "$($directories.build.logs)\devkit.txt"
-    HandleFailure( "devkit" )
-
-    Delete config.yml
-}
-
 function Installlibcurl(){
-    Delete "$($directories.ruby)\bin\*curl.*"
-    Copy "$($dependencies.libcurl.directory)\*curl.*" "$($directories.ruby)\bin\"
+    Delete "$($directories.ruby)\bin\libcurl.dll*"
+    Copy "$($dependencies.libcurl.directory)\bin\libcurl-x64.dll" "$($directories.ruby)\bin\libcurl.dll"
+    HandleFailure( "curl" )
 }
 
-function InstallPhantomJS(){
-    Delete "$($directories.ruby)\bin\phantomjs.exe"
-    Copy "$($dependencies.phantomjs.directory)\bin\phantomjs.exe" "$($directories.ruby)\bin\"
+function InstallChromedriver(){
+    Delete "$($directories.ruby)\bin\chromedriver.exe"
+    Copy "$($directories.build.extracted)\chromedriver.exe" "$($directories.ruby)\bin\"
+    HandleFailure( "chromedriver" )
+}
+
+function InstallMimeInfo(){
+    Copy "$($dependencies.mimeinfo.directory)\shared-mime-info-2.0\data\freedesktop.org.xml.in" "$($directories.appdata)"
+    HandleFailure( "mimeinfo" )
 }
 
 function InstallArachni(){
     Delete "$($directories.arachni)\*"
     Copy "$($dependencies.arachni.directory)\*" "$($directories.arachni)\" -Recurse
 
+
+    # Required for shared-mime-info gem.
+    $env:FREEDESKTOP_MIME_TYPES_PATH = "$($directories.appdata)\freedesktop.org.xml.in"
+
+    # Required for SQlite3.
+    & "$($directories.ruby)\msys64\usr\bin\sh.exe" "-l" "-c" "pacman.exe --noconfirm -S mingw-w64-x86_64-dlfcn" *>> "$($directories.build.logs)\arachni.txt"
+
     Write-Host -NoNewline "  * Installing bundle..."
     Set-Location $directories.arachni
+
+    & "$($directories.ruby)\bin\bundle.bat" "config" "build.puma" "--with-opt-dir=$($directories.appdata)\openssl\" *>> "$($directories.build.logs)\arachni.txt"
     & "$($directories.ruby)\bin\bundle.bat" "install" *>> "$($directories.build.logs)\arachni.txt"
     HandleFailure( "arachni" )
     Write-Output "done."
@@ -217,23 +234,23 @@ function InstallArachni(){
     Set-Location $directories.arachni
 
     Write-Host -NoNewline "  * Setting up the database..."
-    & "$($directories.ruby)\bin\rake.bat" "db:setup" "RAILS_ENV=production" *>> "$($directories.build.logs)\arachni.txt"
+    & "$($directories.ruby)\bin\rake.cmd" "db:setup" "RAILS_ENV=production" "--trace" *>> "$($directories.build.logs)\arachni.txt"
     HandleFailure( "arachni" )
     Write-Output "done."
 
     Write-Host -NoNewline "  * Precompiling assets..."
-    & "$($directories.ruby)\bin\rake.bat" "assets:precompile" "RAILS_ENV=production" *>> "$($directories.build.logs)\arachni.txt"
+    & "$($directories.ruby)\bin\rake.cmd" "assets:precompile" "RAILS_ENV=production" "--trace" *>> "$($directories.build.logs)\arachni.txt"
     HandleFailure( "arachni" )
     Write-Output "done."
 
     Write-Host -NoNewline "  * Writing full version to VERSION.txt file..."
-    & "$($directories.ruby)\bin\rake.bat" "version:full" > "$($directories.root)\VERSION.txt"
+    & "$($directories.ruby)\bin\rake.cmd" "version:full" > "$($directories.root)\VERSION.txt"
     HandleFailure( "arachni" )
     Write-Output "done."
 }
 
 function InstallBinWrappers() {
-    Set-Content "$($directories.system)\setenv.bat" $(SetEnvBatch)
+    Set-Content "$($directories.system)\setenv.cmd" $(SetEnvBatch)
 
     $web_executables = (
         "create_user",
@@ -243,30 +260,30 @@ function InstallBinWrappers() {
     )
 
     foreach( $executable in $web_executables ) {
-        $wrapper = "$($directories.bin)\arachni_web_$executable.bat"
+        $wrapper = "$($directories.bin)\arachni_web_$executable.cmd"
         Set-Content $wrapper $(WebUIScriptWrapper( $executable ))
         Write-Output "  * $wrapper"
     }
 
-    $wrapper = "$($directories.bin)\arachni_web.bat"
+    $wrapper = "$($directories.bin)\arachni_web.cmd"
     Set-Content $wrapper $(WebUIBinWrapper( "rackup `"%ENV_WEBUI_ROOT%/config.ru`"" ))
     Write-Output "  * $wrapper"
 
-    $wrapper = "$($directories.bin)\arachni_web_task.bat"
+    $wrapper = "$($directories.bin)\arachni_web_task.cmd"
     Set-Content $wrapper $(WebUIBinWrapper( "rake -f `"%ENV_WEBUI_ROOT%/Rakefile`"" ))
     Write-Output "  * $wrapper"
 
-    $wrapper = "$($directories.bin)\arachni_shell.bat"
+    $wrapper = "$($directories.bin)\arachni_shell.cmd"
     Set-Content $wrapper $(EnvWrapper( "set prompt=%username%@%computername%:`$p [arachni-shell]`$`$ `r`ncmd.exe" ))
     Write-Output "  * $wrapper"
 
-    $wrapper = "$($directories.bin)\arachni_web_script.bat"
+    $wrapper = "$($directories.bin)\arachni_web_script.cmd"
     Set-Content $wrapper $(WebUIBinWrapper( "rails runner" ))
     Write-Output "  * $wrapper"
 
     Get-ChildItem "$($directories.arachni)\bin" -Filter arachni* | `
     Foreach-Object{
-        $wrapper = "$($directories.bin)\$($_.BaseName).bat"
+        $wrapper = "$($directories.bin)\$($_.BaseName).cmd"
         Set-Content $wrapper $(WebUIBinDelegator)
         Write-Output "  * $wrapper"
     }
@@ -318,28 +335,32 @@ $directories = @{
 }
 
 $dependencies = @{
-    # Stick with this version because SQLite3 doesn't have a native gem for 2.3 yet:
-    #   https://github.com/sparklemotion/sqlite3-ruby/issues/185
+    openssl = @{
+        url       = "https://slproweb.com/download/Win64OpenSSL_Light-1_1_1m.exe"
+        archive   = $null
+        directory = $null
+        force     = $false
+    }
     ruby   = @{
-        url       = "http://dl.bintray.com/oneclick/rubyinstaller/ruby-2.2.1-x64-mingw32.7z"
+        url       = "https://github.com/oneclick/rubyinstaller2/releases/download/RubyInstaller-2.7.5-1/rubyinstaller-devkit-2.7.5-1-x64.exe"
         archive   = $null
         directory = $null
         force     = $false
     }
-    devkit = @{
-        url       = "http://dl.bintray.com/oneclick/rubyinstaller/DevKit-mingw64-64-4.7.2-20130224-1432-sfx.exe"
+    chromedriver = @{
+        url       = "https://chromedriver.storage.googleapis.com/99.0.4844.35/chromedriver_win32.zip"
         archive   = $null
         directory = $null
         force     = $false
     }
-    phantomjs = @{
-        url       = "https://bitbucket.org/ariya/phantomjs/downloads/phantomjs-2.1.1-windows.zip"
+    mimeinfo = @{
+        url       = "https://gitlab.freedesktop.org/xdg/shared-mime-info/uploads/0440063a2e6823a4b1a6fb2f2af8350f/shared-mime-info-2.0.tar.xz"
         archive   = $null
         directory = $null
         force     = $false
     }
     libcurl = @{
-        url       = "http://curl.haxx.se/gknw.net/7.40.0/dist-w64/curl-7.40.0-rtmp-ssh2-ssl-sspi-zlib-winidn-static-bin-w64.7z"
+        url       = "https://curl.se/windows/dl-7.81.0/curl-7.81.0-win64-mingw.zip"
         archive   = $null
         directory = $null
         force     = $false
@@ -364,17 +385,20 @@ if( -not $from_clean_dir ) {
 
     Write-Output "Installing"
 
+    Write-Output "  * OpenSSL"
+    InstallOpenSSL
+
     Write-Output "  * Ruby"
     InstallRuby
-
-    Write-Output "  * DevKit"
-    InstallDevKit
 
     Write-Output "  * libcurl"
     Installlibcurl
 
-    Write-Output "  * PhantomJS"
-    InstallPhantomJS
+    Write-Output "  * Chromedriver"
+    InstallChromedriver
+
+    Write-Output "  * Mime info"
+    InstallMimeInfo
 
     New-Item "$clean_build_dir" -type directory *> $null
     Write-Output ""
@@ -382,7 +406,6 @@ if( -not $from_clean_dir ) {
     Copy "$($directories.root)\*" "$clean_build_dir\" -Recurse
     Write-Output ""
 } else {
-    FetchDependency "devkit" $dependencies.devkit
     FetchDependency "arachni" $dependencies.arachni
 }
 
