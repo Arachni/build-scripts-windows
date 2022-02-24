@@ -320,7 +320,8 @@ $directories = @{
 
     bin       = "$build_dir\bin"
     system    = "$build_dir\system"
-    arachni   = "$build_dir\system\arachni-ui-web"
+    arachni   = "$build_dir\system\arachni-ui-web",
+    arachni   = "$build_dir\system\arachni-ui-web\tmp\pids"
     ruby      = "$build_dir\system\ruby"
     logs      = "$build_dir\system\logs"
     flogs     = "$build_dir\system\logs\framework"
