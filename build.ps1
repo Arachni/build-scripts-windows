@@ -107,6 +107,7 @@ function SetEnvBatch() {
 
 set ENV_ROOT=%~dp0
 set ENV_RUBY_BIN=%ENV_ROOT%ruby\bin
+set ENV_CHROMEDRIVER_DIR=%ENV_ROOT%..\chromedriver
 set ENV_WEBUI_ROOT=%ENV_ROOT%arachni-ui-web
 set ENV_WEBUI_BIN=%ENV_WEBUI_ROOT%\bin
 
@@ -120,7 +121,7 @@ set ARACHNI_WEBUI_LOGDIR=%ENV_ROOT%\logs\webui
 set USERPROFILE=%ENV_ROOT%home
 
 For /F "Delims=" %%I In ('echo "%PATH%" ^| find /C /I "%ENV_RUBY_BIN%"') Do set pathExists=%%I 2>Nul
-If %pathExists%==0 set PATH=%ENV_RUBY_BIN%;%PATH%
+If %pathExists%==0 set PATH=%ENV_RUBY_BIN%;%ENV_CHROMEDRIVER_DIR%;%PATH%
 "@
 }
 
@@ -202,8 +203,8 @@ function Installlibcurl(){
 }
 
 function InstallChromedriver(){
-    Delete "$($directories.ruby)\bin\chromedriver.exe"
-    Copy "$($directories.build.extracted)\chromedriver.exe" "$($directories.ruby)\bin\"
+    Delete "$($directories.chromedriver)\chromedriver.exe"
+    Copy "$($directories.build.extracted)\chromedriver.exe" "$($directories.chromedriver)\chromedriver.exe"
     HandleFailure( "chromedriver" )
 }
 
@@ -220,7 +221,7 @@ function InstallArachni(){
     # Required for shared-mime-info gem.
     $env:FREEDESKTOP_MIME_TYPES_PATH = "$($directories.appdata)\freedesktop.org.xml.in"
 
-    # Require for asset precompilation.
+    # Required for asset precompilation.
     $env:Path = "$($directories.build.extracted)\node-v16.14.0-win-x64\;$($env:Path)"
 
     # Required for SQlite3.
@@ -322,6 +323,7 @@ $directories = @{
     root      = $build_dir
 
     bin       = "$build_dir\bin"
+    chromedriver = "$build_dir\chromedriver"
     system    = "$build_dir\system"
     arachni   = "$build_dir\system\arachni-ui-web"
     arachni_puma_pids   = "$build_dir\system\arachni-ui-web\tmp\pids"
@@ -358,7 +360,7 @@ $dependencies = @{
         force     = $false
     }
     chromedriver = @{
-        url       = "https://chromedriver.storage.googleapis.com/99.0.4844.35/chromedriver_win32.zip"
+        url       = "https://chromedriver.storage.googleapis.com/98.0.4758.102/chromedriver_win32.zip"
         archive   = $null
         directory = $null
         force     = $false
