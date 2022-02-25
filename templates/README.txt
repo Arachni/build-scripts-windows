@@ -53,7 +53,3 @@ caused by the use of this software.
 Copying
 --------------
 For the Arachni license please see the LICENSE file.
-
-The bundled PhantomJS (http://phantomjs.org/) executable is distributed
-under the BSD license:
-    https://github.com/ariya/phantomjs/blob/master/LICENSE.BSD
